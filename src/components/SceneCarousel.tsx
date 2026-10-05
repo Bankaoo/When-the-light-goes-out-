@@ -21,9 +21,12 @@ export const SceneCarousel: React.FC<SceneCarouselProps> = ({
   const [phase, setPhase] = useState<CarouselSubPhase>(
     isAlreadyShutdown ? 'COMPLETED' : 'APPROACH'
   );
-  const [speed, setSpeed] = useState<number>(isAlreadyShutdown ? 0 : 1.0);
   const [isLit, setIsLit] = useState<boolean>(!isAlreadyShutdown);
   const [reflectionText, setReflectionText] = useState<string>('');
+
+  // Smooth frame-based deceleration state refs
+  const speedRef = useRef<number>(isAlreadyShutdown ? 0 : 1.0);
+  const shutdownStartTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     let animId: number;
@@ -31,6 +34,23 @@ export const SceneCarousel: React.FC<SceneCarouselProps> = ({
 
     const loop = (now: number) => {
       const time = (now - startTime) / 1000;
+
+      // Smooth mechanical deceleration with cubic ease-out
+      if (phase === 'SHUTTING_DOWN') {
+        if (!shutdownStartTimeRef.current) {
+          shutdownStartTimeRef.current = now;
+        }
+        const elapsed = (now - shutdownStartTimeRef.current) / 1000;
+        const duration = 4.2;
+        const progress = Math.min(1.0, elapsed / duration);
+        // Inertia curve: starts gliding, smoothly coasts down to absolute zero
+        speedRef.current = Math.max(0, Math.pow(1 - progress, 2.2));
+      } else if (phase === 'COMPLETED') {
+        speedRef.current = 0;
+      } else if (phase === 'RIDING') {
+        speedRef.current = 1.0;
+      }
+
       const canvas = canvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
@@ -41,7 +61,7 @@ export const SceneCarousel: React.FC<SceneCarouselProps> = ({
             time,
             isLit,
             phase === 'SHUTTING_DOWN',
-            speed
+            speedRef.current
           );
         }
       }
@@ -50,31 +70,20 @@ export const SceneCarousel: React.FC<SceneCarouselProps> = ({
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, [isLit, phase, speed]);
+  }, [isLit, phase]);
 
   const handleStartRide = () => {
     setPhase('RIDING');
-    setSpeed(1.0);
+    speedRef.current = 1.0;
   };
 
   const handleTriggerShutdown = () => {
     setPhase('SHUTTING_DOWN');
+    shutdownStartTimeRef.current = null;
 
-    // Gradually decelerate carousel speed
-    const slowdownTimer = setInterval(() => {
-      setSpeed((prev) => {
-        if (prev <= 0.05) {
-          clearInterval(slowdownTimer);
-          return 0;
-        }
-        return prev * 0.75;
-      });
-    }, 400);
-
-    // Audio shutdown (waltz slows down, fades out, breaker click)
     soundEngine.shutDownCarousel(() => {
       setIsLit(false);
-      setSpeed(0);
+      speedRef.current = 0;
       setPhase('COMPLETED');
       setReflectionText('That was nice. It is okay that it is over.');
       onCompleteShutdown();
@@ -83,7 +92,6 @@ export const SceneCarousel: React.FC<SceneCarouselProps> = ({
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center select-none">
-      {/* 16:9 Viewport Canvas */}
       <canvas
         ref={canvasRef}
         width={480}
@@ -91,7 +99,6 @@ export const SceneCarousel: React.FC<SceneCarouselProps> = ({
         className="w-full h-full object-cover pixelated"
       />
 
-      {/* Atmospheric vignette */}
       <div className="absolute inset-0 vignette-overlay pointer-events-none" />
 
       {/* Top Header */}
@@ -109,7 +116,7 @@ export const SceneCarousel: React.FC<SceneCarouselProps> = ({
         </PixelButton>
       </div>
 
-      {/* Contextual controls docked along the BOTTOM EDGE (Center screen remains completely clear) */}
+      {/* Contextual controls docked along the BOTTOM EDGE */}
       <div className="absolute bottom-3 left-4 right-4 z-10 pointer-events-none flex items-end justify-center">
         {phase === 'APPROACH' && (
           <div className="pointer-events-auto bg-[#0b0f1d]/92 border border-[#2d3a60] p-3 text-center max-w-md w-full flex items-center justify-between gap-4 shadow-[3px_3px_0px_#000]">

@@ -11,7 +11,6 @@ interface SceneFerrisProps {
   onProceedToQuietEnding: () => void;
 }
 
-type FerrisAltitude = 'GROUND' | 'LOW' | 'MIDDLE' | 'HIGH' | 'PEAK';
 type FerrisPhase =
   | 'APPROACH'
   | 'ASCENDING'
@@ -28,11 +27,14 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
   onProceedToQuietEnding,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [altitude, setAltitude] = useState<FerrisAltitude>('GROUND');
   const [phase, setPhase] = useState<FerrisPhase>(
     isAlreadyShutdown ? 'COMPLETED' : 'APPROACH'
   );
   const [isLit, setIsLit] = useState<boolean>(!isAlreadyShutdown);
+
+  // Smooth continuous altitude (0.0 = ground, 1.0 = peak)
+  const altitudeRef = useRef<number>(isAlreadyShutdown ? 0 : 0);
+  const motionStartTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     let animId: number;
@@ -40,6 +42,39 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
 
     const loop = (now: number) => {
       const time = (now - startTime) / 1000;
+
+      // Handle continuous smooth altitude interpolation
+      if (phase === 'ASCENDING') {
+        if (!motionStartTimeRef.current) motionStartTimeRef.current = now;
+        const elapsed = (now - motionStartTimeRef.current) / 1000;
+        const duration = 7.5;
+        const p = Math.min(1.0, elapsed / duration);
+        // Smoothstep interpolation (3p^2 - 2p^3)
+        altitudeRef.current = p * p * (3 - 2 * p);
+
+        if (p >= 1.0) {
+          altitudeRef.current = 1.0;
+          setPhase('PEAK');
+          soundEngine.playQuietNightChime();
+        }
+      } else if (phase === 'DESCENDING') {
+        if (!motionStartTimeRef.current) motionStartTimeRef.current = now;
+        const elapsed = (now - motionStartTimeRef.current) / 1000;
+        const duration = 6.5;
+        const p = Math.min(1.0, elapsed / duration);
+        // Smooth descent to earth
+        altitudeRef.current = 1.0 - (p * p * (3 - 2 * p));
+
+        if (p >= 1.0) {
+          altitudeRef.current = 0.0;
+          setPhase('GROUND_EXIT');
+        }
+      } else if (phase === 'PEAK') {
+        altitudeRef.current = 1.0;
+      } else if (phase === 'GROUND_EXIT' || phase === 'COMPLETED' || phase === 'APPROACH') {
+        altitudeRef.current = 0.0;
+      }
+
       const canvas = canvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
@@ -57,7 +92,13 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
               darknessFactor: 0.7,
             });
           } else {
-            pixelRenderer.renderFerrisWheelRide(ctx, time, altitude, isLit);
+            pixelRenderer.renderFerrisWheelRide(
+              ctx,
+              time,
+              altitudeRef.current,
+              isLit,
+              phase === 'ASCENDING' || phase === 'DESCENDING'
+            );
           }
         }
       }
@@ -66,44 +107,16 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, [altitude, phase, isLit]);
+  }, [phase, isLit]);
 
-  // Ascending flow through stages: GROUND -> LOW -> MIDDLE -> HIGH -> PEAK
   const handleStartAscent = () => {
+    motionStartTimeRef.current = null;
     setPhase('ASCENDING');
-    setAltitude('LOW');
-
-    setTimeout(() => {
-      setAltitude('MIDDLE');
-    }, 2500);
-
-    setTimeout(() => {
-      setAltitude('HIGH');
-    }, 5000);
-
-    setTimeout(() => {
-      setAltitude('PEAK');
-      setPhase('PEAK');
-      soundEngine.playQuietNightChime();
-    }, 7500);
   };
 
   const handleDescend = () => {
+    motionStartTimeRef.current = null;
     setPhase('DESCENDING');
-    setAltitude('HIGH');
-
-    setTimeout(() => {
-      setAltitude('MIDDLE');
-    }, 2200);
-
-    setTimeout(() => {
-      setAltitude('LOW');
-    }, 4400);
-
-    setTimeout(() => {
-      setAltitude('GROUND');
-      setPhase('GROUND_EXIT');
-    }, 6600);
   };
 
   const handleShutdownFerris = () => {
@@ -116,7 +129,6 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
       setPhase('COMPLETED');
       onCompleteShutdown();
 
-      // Transition to final scene after 2.5 seconds
       setTimeout(() => {
         onProceedToQuietEnding();
       }, 2500);
@@ -125,7 +137,6 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center select-none">
-      {/* 16:9 Canvas Viewport */}
       <canvas
         ref={canvasRef}
         width={480}
@@ -133,7 +144,6 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
         className="w-full h-full object-cover pixelated"
       />
 
-      {/* Atmospheric vignette */}
       <div className="absolute inset-0 vignette-overlay pointer-events-none" />
 
       {/* Top Header */}
@@ -153,7 +163,7 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
         )}
       </div>
 
-      {/* Contextual controls docked along the BOTTOM EDGE (Center screen remains completely clear) */}
+      {/* Contextual controls docked along the BOTTOM EDGE */}
       <div className="absolute bottom-3 left-4 right-4 z-10 pointer-events-none flex items-end justify-center">
         {phase === 'APPROACH' && (
           <div className="pointer-events-auto bg-[#0b0f1d]/92 border border-[#2d3a60] p-3 text-center max-w-md w-full flex items-center justify-between gap-4 shadow-[3px_3px_0px_#000]">
@@ -169,9 +179,7 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
 
         {phase === 'ASCENDING' && (
           <div className="bg-[#080b14]/92 border border-[#23293e] px-4 py-2 text-center text-xs text-cyan-200 font-['VT323'] tracking-widest animate-pulse shadow-[2px_2px_0px_#000]">
-            Rising slowly... {altitude === 'LOW' && 'Leaving the ground behind...'}
-            {altitude === 'MIDDLE' && 'The lights below shrink into embers...'}
-            {altitude === 'HIGH' && 'Entering the stillness of the upper air...'}
+            Rising slowly... The lights below shrink into embers... Entering the stillness of the upper air...
           </div>
         )}
 

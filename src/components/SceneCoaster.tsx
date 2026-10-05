@@ -34,7 +34,12 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
   const [phase, setPhase] = useState<CoasterPhase>(
     isAlreadyShutdown ? 'COMPLETED' : 'APPROACH'
   );
-  const [dropProgress, setDropProgress] = useState(0);
+
+  // Smooth frame-based progress refs
+  const climbStartTimeRef = useRef<number | null>(null);
+  const dropStartTimeRef = useRef<number | null>(null);
+  const climbProgressRef = useRef<number>(0);
+  const dropProgressRef = useRef<number>(0);
 
   useEffect(() => {
     let animId: number;
@@ -42,6 +47,35 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
 
     const loop = (now: number) => {
       const time = (now - startTime) / 1000;
+
+      // Handle continuous climb progress
+      if (phase === 'CLIMBING') {
+        if (!climbStartTimeRef.current) climbStartTimeRef.current = now;
+        const elapsed = (now - climbStartTimeRef.current) / 1000;
+        const climbDuration = 4.2;
+        const p = Math.min(1.0, elapsed / climbDuration);
+        // Smooth easing near the summit crest
+        climbProgressRef.current = Math.sin((p * Math.PI) / 2);
+
+        if (p >= 1.0) {
+          soundEngine.stopCoasterClanking();
+          setPhase('PEAK_PAUSE');
+        }
+      }
+
+      // Handle continuous smooth drop progress (cubic acceleration & braking)
+      if (phase === 'DROPPING') {
+        if (!dropStartTimeRef.current) dropStartTimeRef.current = now;
+        const elapsed = (now - dropStartTimeRef.current) / 1000;
+        const dropDuration = 2.8;
+        const p = Math.min(1.0, elapsed / dropDuration);
+        dropProgressRef.current = p;
+
+        if (p >= 1.0) {
+          setPhase('STATION_STOP');
+        }
+      }
+
       const canvas = canvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
@@ -66,7 +100,7 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
 
             case 'CLIMBING':
             case 'PEAK_PAUSE':
-              pixelRenderer.renderCoasterClimb(ctx, time, 0);
+              pixelRenderer.renderCoasterClimb(ctx, time, climbProgressRef.current);
               break;
 
             case 'LOOKING_UP':
@@ -78,7 +112,7 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
               break;
 
             case 'DROPPING':
-              pixelRenderer.renderCoasterDrop(ctx, time, dropProgress);
+              pixelRenderer.renderCoasterDrop(ctx, time, dropProgressRef.current);
               break;
           }
         }
@@ -88,34 +122,20 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, [phase, dropProgress, carouselShutdown, ferrisShutdown, isAlreadyShutdown]);
+  }, [phase, carouselShutdown, ferrisShutdown, isAlreadyShutdown]);
 
-  // Climb logic
   const handleStartRide = () => {
+    climbStartTimeRef.current = null;
+    climbProgressRef.current = 0;
     setPhase('CLIMBING');
     soundEngine.startCoasterClanking();
-
-    // Climb for 4 seconds then hold at peak
-    setTimeout(() => {
-      soundEngine.stopCoasterClanking();
-      setPhase('PEAK_PAUSE');
-    }, 4200);
   };
 
-  // Drop logic
   const handleStartDrop = () => {
+    dropStartTimeRef.current = null;
+    dropProgressRef.current = 0;
     setPhase('DROPPING');
     soundEngine.playCoasterDropRush();
-
-    let progress = 0;
-    const dropInterval = setInterval(() => {
-      progress += 0.05;
-      setDropProgress(progress);
-      if (progress >= 1.0) {
-        clearInterval(dropInterval);
-        setPhase('STATION_STOP');
-      }
-    }, 120);
   };
 
   const handleShutdownCoaster = () => {
@@ -131,7 +151,6 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center select-none">
-      {/* 16:9 Canvas Viewport */}
       <canvas
         ref={canvasRef}
         width={480}
@@ -139,7 +158,6 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
         className="w-full h-full object-cover pixelated"
       />
 
-      {/* Atmospheric vignette */}
       <div className="absolute inset-0 vignette-overlay pointer-events-none" />
 
       {/* Top Header */}
@@ -177,7 +195,7 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
           </div>
         )}
 
-        {/* AT THE PEAK: Held for contemplation with Look Up / Look Down at the bottom */}
+        {/* AT THE PEAK: Held in pristine, breathless stillness */}
         {phase === 'PEAK_PAUSE' && (
           <div className="pointer-events-auto bg-[#080c18]/95 border border-[#263557] px-4 py-3 text-center max-w-lg w-full flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[3px_3px_0px_#000]">
             <div className="text-left text-xs text-slate-200 font-['VT323'] tracking-wider">
@@ -273,7 +291,7 @@ export const SceneCoaster: React.FC<SceneCoasterProps> = ({
         )}
 
         {phase === 'DROPPING' && (
-          <div className="text-center text-xs text-white font-['Silkscreen'] tracking-widest drop-shadow-[0_2px_4px_#000]">
+          <div className="text-center text-xs text-white/90 font-['Silkscreen'] tracking-widest drop-shadow-[0_2px_4px_#000]">
             * WIND ROARING *
           </div>
         )}

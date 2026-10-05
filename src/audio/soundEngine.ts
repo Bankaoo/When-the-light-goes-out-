@@ -41,11 +41,13 @@ class SoundEngine {
   private birdInterval: number | null = null;
   private coasterClankInterval: number | null = null;
 
+  private lastClickTime: number = 0;
+
   // Layer Volume Cache (0.0 to 1.0)
   public layerVolumes: SoundLayerVolumes = {
     wind: 0.15,
-    insects: 0.25,
-    nightBird: 0.4,
+    insects: 0.35,
+    nightBird: 0.45,
     leaves: 0.3,
     music: 0.5,
     machinery: 0.4,
@@ -87,11 +89,11 @@ class SoundEngine {
 
       // Natural sounds: subtle and sparse initially
       this.windGain = this.ctx.createGain();
-      this.windGain.gain.setValueAtTime(0.015, this.ctx.currentTime); // very low gentle whisper
+      this.windGain.gain.setValueAtTime(0.015, this.ctx.currentTime);
       this.windGain.connect(this.masterGain);
 
       this.insectsGain = this.ctx.createGain();
-      this.insectsGain.gain.setValueAtTime(0.01, this.ctx.currentTime); // almost imperceptible at start
+      this.insectsGain.gain.setValueAtTime(0.01, this.ctx.currentTime);
       this.insectsGain.connect(this.masterGain);
 
       this.leavesGain = this.ctx.createGain();
@@ -132,12 +134,11 @@ class SoundEngine {
     return this.isMuted;
   }
 
-  // --- NATURAL SOUND LAYER: REDUCED DRAMATICALLY SUBTLE WIND ---
+  // --- NATURAL SOUND LAYER: GENTLE SUBTLE WIND ---
 
   private startSubtleWind() {
     if (!this.ctx || !this.windGain) return;
 
-    // Pink / Brown noise buffer
     const bufferSize = this.ctx.sampleRate * 4;
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const output = noiseBuffer.getChannelData(0);
@@ -148,23 +149,21 @@ class SoundEngine {
       b0 = 0.99 * b0 + white * 0.05;
       b1 = 0.96 * b1 + white * 0.11;
       b2 = 0.86 * b2 + white * 0.25;
-      output[i] = (b0 + b1 + b2) * 0.06; // reduced amplitude
+      output[i] = (b0 + b1 + b2) * 0.05;
     }
 
     const whiteNoise = this.ctx.createBufferSource();
     whiteNoise.buffer = noiseBuffer;
     whiteNoise.loop = true;
 
-    // Soft lowpass filter for gentle nocturnal breeze
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(220, this.ctx.currentTime);
+    filter.frequency.setValueAtTime(200, this.ctx.currentTime);
 
-    // Very slow gentle LFO for subtle breathing of the night air
     const lfo = this.ctx.createOscillator();
-    lfo.frequency.setValueAtTime(0.08, this.ctx.currentTime); // 12-second cycle
+    lfo.frequency.setValueAtTime(0.07, this.ctx.currentTime);
     const lfoGain = this.ctx.createGain();
-    lfoGain.gain.setValueAtTime(60, this.ctx.currentTime);
+    lfoGain.gain.setValueAtTime(50, this.ctx.currentTime);
     lfo.connect(lfoGain);
     lfoGain.connect(filter.frequency);
 
@@ -181,18 +180,16 @@ class SoundEngine {
   private startRustlingLeaves() {
     if (this.leavesInterval) return;
 
-    // Occasional gentle rustle of leaves when breeze stirs the branches
     const triggerLeafRustle = () => {
       if (!this.ctx || !this.leavesGain || this.isMuted) return;
       const now = this.ctx.currentTime;
 
-      // Soft high-pass filtered noise burst
       const rustleLen = 0.8 + Math.random() * 0.6;
       const bufferSize = Math.floor(this.ctx.sampleRate * rustleLen);
       const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const data = noiseBuffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * 0.15;
+        data[i] = (Math.random() * 2 - 1) * 0.12;
       }
 
       const noise = this.ctx.createBufferSource();
@@ -200,12 +197,12 @@ class SoundEngine {
 
       const bandpass = this.ctx.createBiquadFilter();
       bandpass.type = 'bandpass';
-      bandpass.frequency.setValueAtTime(1400 + Math.random() * 400, now);
+      bandpass.frequency.setValueAtTime(1400 + Math.random() * 300, now);
       bandpass.Q.setValueAtTime(1.8, now);
 
       const gain = this.ctx.createGain();
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.08, now + rustleLen * 0.3);
+      gain.gain.linearRampToValueAtTime(0.06, now + rustleLen * 0.3);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + rustleLen);
 
       noise.connect(bandpass);
@@ -215,12 +212,11 @@ class SoundEngine {
       noise.start(now);
     };
 
-    // Trigger every 8-16 seconds
     this.leavesInterval = window.setInterval(() => {
-      if (Math.random() < 0.65) {
+      if (Math.random() < 0.6) {
         triggerLeafRustle();
       }
-    }, 7000);
+    }, 8000);
   }
 
   // --- NATURAL SOUND LAYER: DISTANT NIGHT BIRD / OWL ---
@@ -228,16 +224,14 @@ class SoundEngine {
   private startNightBird() {
     if (this.birdInterval) return;
 
-    // Sparse, tranquil nocturnal bird call: soft distant owl / nightjar coo
     const playNightBirdCall = () => {
       if (!this.ctx || !this.nightBirdGain || this.isMuted) return;
       const now = this.ctx.currentTime;
 
-      // Two-part gentle flute coo: "Hoo... hu-hoo"
       const notes = [
-        { f: 480, start: 0, dur: 0.5, vol: 0.12 },
-        { f: 450, start: 0.8, dur: 0.3, vol: 0.1 },
-        { f: 460, start: 1.25, dur: 0.65, vol: 0.14 },
+        { f: 470, start: 0, dur: 0.5, vol: 0.1 },
+        { f: 440, start: 0.75, dur: 0.28, vol: 0.08 },
+        { f: 450, start: 1.15, dur: 0.6, vol: 0.12 },
       ];
 
       notes.forEach((note) => {
@@ -247,12 +241,10 @@ class SoundEngine {
         const gain = this.ctx.createGain();
 
         osc.type = 'sine';
-        // Warm slight portamento/inflection
-        osc.frequency.setValueAtTime(note.f - 15, t);
+        osc.frequency.setValueAtTime(note.f - 12, t);
         osc.frequency.linearRampToValueAtTime(note.f, t + 0.1);
-        osc.frequency.exponentialRampToValueAtTime(note.f - 25, t + note.dur);
+        osc.frequency.exponentialRampToValueAtTime(note.f - 20, t + note.dur);
 
-        // Soft bell-like envelope
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(note.vol, t + 0.08);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + note.dur);
@@ -265,12 +257,11 @@ class SoundEngine {
       });
     };
 
-    // Very sparse: every 18-28 seconds
     this.birdInterval = window.setInterval(() => {
-      if (Math.random() < 0.55) {
+      if (Math.random() < 0.5) {
         playNightBirdCall();
       }
-    }, 14000);
+    }, 15000);
   }
 
   // --- CRICKETS: SPARSE AND SUBTLE ---
@@ -282,9 +273,8 @@ class SoundEngine {
       if (!this.ctx || !this.insectsGain || this.isMuted) return;
 
       const now = this.ctx.currentTime;
-      const baseFreq = 4500 + (Math.random() * 300 - 150);
+      const baseFreq = 4400 + (Math.random() * 250 - 125);
 
-      // Sparse gentle micro-trill
       const bursts = 2 + Math.floor(Math.random() * 2);
       for (let i = 0; i < bursts; i++) {
         const startTime = now + i * 0.06;
@@ -293,10 +283,10 @@ class SoundEngine {
 
         osc.type = 'sine';
         osc.frequency.setValueAtTime(baseFreq, startTime);
-        osc.frequency.exponentialRampToValueAtTime(baseFreq + 200, startTime + 0.03);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq + 180, startTime + 0.03);
 
         gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.04, startTime + 0.008);
+        gain.gain.linearRampToValueAtTime(0.035, startTime + 0.008);
         gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.035);
 
         osc.connect(gain);
@@ -308,13 +298,13 @@ class SoundEngine {
     };
 
     this.cricketsInterval = window.setInterval(() => {
-      if (Math.random() < 0.6) {
+      if (Math.random() < 0.55) {
         playCricketTrill();
       }
-    }, 2800);
+    }, 3200);
   }
 
-  // --- ARTIFICIAL SOUND LAYER: ELECTRICAL HUM ---
+  // --- ELECTRICAL HUM ---
 
   private startElectricalHum() {
     if (!this.ctx || !this.crowdGain) return;
@@ -329,10 +319,10 @@ class SoundEngine {
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(160, this.ctx.currentTime);
+    filter.frequency.setValueAtTime(150, this.ctx.currentTime);
 
     const humSubGain = this.ctx.createGain();
-    humSubGain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    humSubGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
 
     osc1.connect(filter);
     osc2.connect(filter);
@@ -472,14 +462,13 @@ class SoundEngine {
     }
 
     const now = this.ctx.currentTime;
-    // Gradually slow down tempo
     const intervalSlowdown = setInterval(() => {
       this.waltzTempo = Math.min(1100, this.waltzTempo + 80);
     }, 350);
 
-    // Fade out music gain to EXACTLY ZERO
+    // Fade out music gain to EXACTLY ZERO smoothly
     this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, now);
-    this.musicGain.gain.linearRampToValueAtTime(0.0, now + 4.0);
+    this.musicGain.gain.linearRampToValueAtTime(0.0, now + 4.2);
 
     setTimeout(() => {
       clearInterval(intervalSlowdown);
@@ -491,7 +480,7 @@ class SoundEngine {
       this.playRelayClick();
       this.updateAtmosphereAfterCarousel();
       if (onComplete) onComplete();
-    }, 4200);
+    }, 4400);
   }
 
   // --- ROLLER COASTER SOUNDS ---
@@ -538,7 +527,7 @@ class SoundEngine {
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = noiseBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * 0.4;
+      data[i] = (Math.random() * 2 - 1) * 0.35;
     }
 
     const noise = this.ctx.createBufferSource();
@@ -546,13 +535,13 @@ class SoundEngine {
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(300, now);
-    filter.frequency.exponentialRampToValueAtTime(2400, now + 1.2);
-    filter.frequency.exponentialRampToValueAtTime(400, now + 3.2);
+    filter.frequency.setValueAtTime(280, now);
+    filter.frequency.exponentialRampToValueAtTime(2000, now + 1.2);
+    filter.frequency.exponentialRampToValueAtTime(350, now + 3.2);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.05, now);
-    gain.gain.linearRampToValueAtTime(0.45, now + 1.0);
+    gain.gain.setValueAtTime(0.04, now);
+    gain.gain.linearRampToValueAtTime(0.38, now + 1.0);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 3.4);
 
     noise.connect(filter);
@@ -562,65 +551,97 @@ class SoundEngine {
     noise.start(now);
   }
 
-  // --- BREAKER SWITCH & SFX ---
+  // --- REFINED, UNOBTRUSIVE INTERACTION SOUNDS ---
 
-  public playBreakerThunk() {
-    if (!this.ctx || !this.masterGain) return;
+  /**
+   * Subtle, soft physical tactile click.
+   * Significantly reduced volume (0.016) with gentle low-pass warmth.
+   * Debounced to ensure repeated clicks never become irritating.
+   */
+  public playButtonChime() {
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
     const now = this.ctx.currentTime;
 
+    // Debounce rapid clicking (min 80ms spacing)
+    if (now - this.lastClickTime < 0.08) return;
+    this.lastClickTime = now;
+
     const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
 
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(80, now);
-    osc.frequency.exponentialRampToValueAtTime(25, now + 0.15);
+    // Gentle tactile wooden/relay key sound
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.04);
 
-    gain.gain.setValueAtTime(0.4, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(450, now);
 
-    osc.connect(gain);
+    // Whisper quiet - unobtrusive physical press (0.016)
+    gain.gain.setValueAtTime(0.016, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(this.masterGain);
 
     osc.start(now);
-    osc.stop(now + 0.2);
+    osc.stop(now + 0.045);
+  }
 
-    this.playRelayClick(now + 0.05);
+  public playBreakerThunk() {
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(75, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 0.14);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(280, now);
+
+    // Deep warm mechanical thud without harsh distortion (reduced from 0.4 to 0.18)
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.18);
+
+    this.playRelayClick(now + 0.04);
   }
 
   public playRelayClick(time?: number) {
-    if (!this.ctx || !this.masterGain) return;
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
     const t = time ?? this.ctx.currentTime;
 
     const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
+
     osc.type = 'square';
-    osc.frequency.setValueAtTime(950, t);
+    osc.frequency.setValueAtTime(540, t);
 
-    gain.gain.setValueAtTime(0.15, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(750, t);
 
-    osc.connect(gain);
+    gain.gain.setValueAtTime(0.035, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(this.masterGain);
+
     osc.start(t);
-    osc.stop(t + 0.05);
-  }
-
-  public playButtonChime() {
-    if (!this.ctx || !this.masterGain) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(660, now);
-
-    gain.gain.setValueAtTime(0.1, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-    osc.connect(gain);
-    gain.connect(this.masterGain);
-    osc.start(now);
-    osc.stop(now + 0.15);
+    osc.stop(t + 0.035);
   }
 
   // --- TRANSITIONS: HIGHLY PRONOUNCED ARTIFICIAL -> NATURAL ---
@@ -628,15 +649,12 @@ class SoundEngine {
   public updateAtmosphereAfterCarousel() {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
-    // Music is completely 0.0
     if (this.musicGain) {
       this.musicGain.gain.linearRampToValueAtTime(0.0, now + 1);
     }
-    // Crowd and electrical hum slightly reduced
     if (this.crowdGain) {
       this.crowdGain.gain.linearRampToValueAtTime(0.08, now + 2);
     }
-    // Natural sounds begin to appear, subtle and sparse
     if (this.insectsGain) {
       this.insectsGain.gain.linearRampToValueAtTime(0.03, now + 2);
     }
@@ -651,15 +669,12 @@ class SoundEngine {
   public updateAtmosphereAfterCoaster() {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
-    // Machinery hum drops completely to 0.0!
     if (this.machineryGain) {
       this.machineryGain.gain.linearRampToValueAtTime(0.0, now + 1.5);
     }
-    // Crowd murmur drops completely to 0.0!
     if (this.crowdGain) {
       this.crowdGain.gain.linearRampToValueAtTime(0.02, now + 1.5);
     }
-    // Natural sounds become gently audible
     if (this.insectsGain) {
       this.insectsGain.gain.linearRampToValueAtTime(0.06, now + 2);
     }
@@ -670,15 +685,13 @@ class SoundEngine {
       this.nightBirdGain.gain.linearRampToValueAtTime(0.06, now + 2);
     }
     if (this.windGain) {
-      // Keep wind very gentle and subtle (0.028 max)
-      this.windGain.gain.linearRampToValueAtTime(0.028, now + 2);
+      this.windGain.gain.linearRampToValueAtTime(0.025, now + 2);
     }
   }
 
   public updateAtmosphereAfterFerris() {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
-    // ALL artificial sounds are COMPLETELY ZERO
     if (this.machineryGain) {
       this.machineryGain.gain.linearRampToValueAtTime(0.0, now + 2);
     }
@@ -688,11 +701,8 @@ class SoundEngine {
     if (this.musicGain) {
       this.musicGain.gain.linearRampToValueAtTime(0.0, now + 1);
     }
-
-    // Natural soundscape takes center stage: tranquil, sparse, delicate
-    // Notice: wind is dramatically reduced (0.035), not overwhelming!
     if (this.windGain) {
-      this.windGain.gain.linearRampToValueAtTime(0.035, now + 3);
+      this.windGain.gain.linearRampToValueAtTime(0.032, now + 3);
     }
     if (this.insectsGain) {
       this.insectsGain.gain.linearRampToValueAtTime(0.09, now + 3);
@@ -715,26 +725,25 @@ class SoundEngine {
     switch (layer) {
       case 'wind':
         if (this.windGain) {
-          // Max wind capped low for gentle whisper
-          this.windGain.gain.linearRampToValueAtTime(value * 0.08, now + 0.1);
+          this.windGain.gain.linearRampToValueAtTime(value * 0.07, now + 0.1);
         }
         break;
 
       case 'insects':
         if (this.insectsGain) {
-          this.insectsGain.gain.linearRampToValueAtTime(value * 0.16, now + 0.1);
+          this.insectsGain.gain.linearRampToValueAtTime(value * 0.15, now + 0.1);
         }
         break;
 
       case 'nightBird':
         if (this.nightBirdGain) {
-          this.nightBirdGain.gain.linearRampToValueAtTime(value * 0.22, now + 0.1);
+          this.nightBirdGain.gain.linearRampToValueAtTime(value * 0.2, now + 0.1);
         }
         break;
 
       case 'leaves':
         if (this.leavesGain) {
-          this.leavesGain.gain.linearRampToValueAtTime(value * 0.14, now + 0.1);
+          this.leavesGain.gain.linearRampToValueAtTime(value * 0.12, now + 0.1);
         }
         break;
 
@@ -744,7 +753,6 @@ class SoundEngine {
           if (value > 0.01 && !this.isWaltzRunning) {
             this.startCarouselWaltz();
           } else if (value <= 0.01 && this.isWaltzRunning) {
-            // Mute music
             this.musicGain.gain.setValueAtTime(0, now);
           }
         }
@@ -752,10 +760,10 @@ class SoundEngine {
 
       case 'machinery':
         if (this.machineryGain) {
-          this.machineryGain.gain.linearRampToValueAtTime(value * 0.25, now + 0.1);
+          this.machineryGain.gain.linearRampToValueAtTime(value * 0.22, now + 0.1);
         }
         if (this.crowdGain) {
-          this.crowdGain.gain.linearRampToValueAtTime(value * 0.15, now + 0.1);
+          this.crowdGain.gain.linearRampToValueAtTime(value * 0.14, now + 0.1);
         }
         break;
     }
@@ -771,7 +779,7 @@ class SoundEngine {
       const gain = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(f, now + idx * 0.12);
-      gain.gain.setValueAtTime(0.06, now + idx * 0.12);
+      gain.gain.setValueAtTime(0.045, now + idx * 0.12);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.12 + 2.5);
       osc.connect(gain);
       gain.connect(this.masterGain);
