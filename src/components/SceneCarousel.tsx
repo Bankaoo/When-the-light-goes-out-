@@ -92,79 +92,72 @@ export const SceneCarousel: React.FC<SceneCarouselProps> = ({
       />
 
       {/* Atmospheric vignette */}
-      <div className="absolute inset-0 vignette-overlay" />
+      <div className="absolute inset-0 vignette-overlay pointer-events-none" />
 
-      {/* HUD & Overlay controls */}
-      <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-6 z-10 pointer-events-none">
-        {/* Top Header / Title */}
-        <div className="flex items-center justify-between">
-          <div className="bg-[#0b0e1b]/85 border border-[#232d4b] px-3 py-1.5 text-xs text-amber-200/90 font-['Silkscreen'] tracking-wider">
-            [ MERRY-GO-ROUND ]
-          </div>
-          <PixelButton
-            onClick={onReturnToPark}
-            variant="ghost"
-            size="sm"
-            className="pointer-events-auto"
-          >
-            ← Return to Park
-          </PixelButton>
+      {/* Top Header */}
+      <div className="absolute top-3 left-4 right-4 flex items-center justify-between z-10 pointer-events-none">
+        <div className="bg-[#0b0e1b]/85 border border-[#232d4b] px-3 py-1.5 text-xs text-amber-200/90 font-['Silkscreen'] tracking-wider">
+          [ MERRY-GO-ROUND ]
         </div>
+        <PixelButton
+          onClick={onReturnToPark}
+          variant="ghost"
+          size="sm"
+          className="pointer-events-auto"
+        >
+          ← Return to Park
+        </PixelButton>
+      </div>
 
-        {/* Phase-specific interactions */}
-        <div className="flex flex-col items-center justify-center w-full my-auto pointer-events-auto">
-          {phase === 'APPROACH' && (
-            <div className="bg-[#0b0f1d]/90 border border-[#2d3a60] p-4 text-center max-w-sm space-y-4 shadow-[4px_4px_0px_#000]">
-              <p className="text-xs text-slate-300 font-['VT323'] tracking-wider">
-                The painted carousel horses gleam under the incandescent garland.
-                The organ waltz spins around in gentle circles.
-              </p>
-              <div className="flex justify-center gap-3">
-                <PixelButton onClick={handleStartRide} size="md">
-                  Ride
-                </PixelButton>
-              </div>
+      {/* Contextual controls docked along the BOTTOM EDGE (Center screen remains completely clear) */}
+      <div className="absolute bottom-3 left-4 right-4 z-10 pointer-events-none flex items-end justify-center">
+        {phase === 'APPROACH' && (
+          <div className="pointer-events-auto bg-[#0b0f1d]/92 border border-[#2d3a60] p-3 text-center max-w-md w-full flex items-center justify-between gap-4 shadow-[3px_3px_0px_#000]">
+            <p className="text-left text-xs text-slate-300 font-['VT323'] tracking-wider flex-1">
+              The painted carousel horses gleam under incandescent lights.
+              The calliope organ waltz plays gently.
+            </p>
+            <PixelButton onClick={handleStartRide} size="sm">
+              Ride
+            </PixelButton>
+          </div>
+        )}
+
+        {phase === 'RIDING' && (
+          <div className="pointer-events-auto w-full max-w-lg flex items-center justify-between gap-3 bg-[#0b0f1d]/92 border border-[#2d3a60] p-2.5 shadow-[3px_3px_0px_#000]">
+            <div className="text-left text-xs text-amber-100/90 font-['VT323'] tracking-wider px-1">
+              Warm lights, painted stirrups, and the simple joy of round and round.
             </div>
-          )}
+            <BreakerSwitch
+              compact
+              label="Attraction Control"
+              sublabel="Gently bring to a stop"
+              onActivate={handleTriggerShutdown}
+            />
+          </div>
+        )}
 
-          {phase === 'RIDING' && (
-            <div className="flex flex-col items-center gap-4">
-              <div className="bg-[#0b0f1d]/85 border border-[#3b4b7c] px-4 py-2 text-center text-xs text-amber-100 font-['VT323'] tracking-wider">
-                Warm lights, painted stirrups, and the simple joy of round and round.
-              </div>
-              <BreakerSwitch
-                label="Attraction Control"
-                sublabel="Gently bring the carousel to a stop"
-                onActivate={handleTriggerShutdown}
-              />
-            </div>
-          )}
+        {phase === 'SHUTTING_DOWN' && (
+          <div className="bg-[#080b14]/92 border border-[#23293e] px-4 py-2 text-center text-xs text-slate-300 font-['VT323'] tracking-widest animate-pulse shadow-[2px_2px_0px_#000]">
+            The gears slow down... The lights extinguish one by one...
+          </div>
+        )}
 
-          {phase === 'SHUTTING_DOWN' && (
-            <div className="bg-[#080b14]/90 border border-[#23293e] px-5 py-3 text-center text-xs text-slate-300 font-['VT323'] tracking-widest animate-pulse">
-              The gears slow down... The lights extinguish one by one...
-            </div>
-          )}
-
-          {phase === 'COMPLETED' && (
-            <div className="bg-[#070912]/92 border border-[#1b2236] p-5 text-center max-w-md space-y-4 shadow-[4px_4px_0px_#000]">
-              <p className="text-sm sm:text-base text-amber-200/90 font-['VT323'] tracking-widest">
+        {phase === 'COMPLETED' && (
+          <div className="pointer-events-auto bg-[#070912]/95 border border-[#1b2236] p-3 text-center max-w-md w-full flex items-center justify-between gap-3 shadow-[3px_3px_0px_#000]">
+            <div className="text-left">
+              <p className="text-xs sm:text-sm text-amber-200/90 font-['VT323'] tracking-widest">
                 {reflectionText || 'The carousel sits quiet and still in the cool night.'}
               </p>
-              <p className="text-xs text-slate-400 font-['VT323'] tracking-wider">
+              <p className="text-[11px] text-slate-400 font-['VT323']">
                 In the distance, the faint chirp of a cricket can now be heard.
               </p>
-              <PixelButton onClick={onReturnToPark} size="md">
-                Return to Park
-              </PixelButton>
             </div>
-          )}
-        </div>
-
-        {/* Bottom subtle note */}
-        <div className="text-center text-[11px] text-slate-500 font-['VT323']">
-          {phase === 'RIDING' ? 'Enjoy the final ride' : ''}
-        </div>
+            <PixelButton onClick={onReturnToPark} size="sm">
+              Return to Park
+            </PixelButton>
+          </div>
+        )}
       </div>
     </div>
   );

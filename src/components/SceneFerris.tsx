@@ -116,7 +116,7 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
       setPhase('COMPLETED');
       onCompleteShutdown();
 
-      // Seamlessly transition into the final quiet darkness sequence after 2.5 seconds
+      // Transition to final scene after 2.5 seconds
       setTimeout(() => {
         onProceedToQuietEnding();
       }, 2500);
@@ -134,112 +134,100 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
       />
 
       {/* Atmospheric vignette */}
-      <div className="absolute inset-0 vignette-overlay" />
+      <div className="absolute inset-0 vignette-overlay pointer-events-none" />
 
-      {/* Overlay UI */}
-      <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-6 z-10 pointer-events-none">
-        {/* Top Header */}
-        <div className="flex items-center justify-between">
-          <div className="bg-[#0b0e1b]/85 border border-[#232d4b] px-3 py-1.5 text-xs text-cyan-300 font-['Silkscreen'] tracking-wider">
-            [ FERRIS WHEEL ]
-          </div>
-          {phase !== 'SHUTTING_DOWN' && phase !== 'COMPLETED' && (
-            <PixelButton
-              onClick={onReturnToPark}
-              variant="ghost"
-              size="sm"
-              className="pointer-events-auto"
-            >
-              ← Return to Park
+      {/* Top Header */}
+      <div className="absolute top-3 left-4 right-4 flex items-center justify-between z-10 pointer-events-none">
+        <div className="bg-[#0b0e1b]/85 border border-[#232d4b] px-3 py-1.5 text-xs text-cyan-300 font-['Silkscreen'] tracking-wider">
+          [ FERRIS WHEEL ]
+        </div>
+        {phase !== 'SHUTTING_DOWN' && phase !== 'COMPLETED' && (
+          <PixelButton
+            onClick={onReturnToPark}
+            variant="ghost"
+            size="sm"
+            className="pointer-events-auto"
+          >
+            ← Return to Park
+          </PixelButton>
+        )}
+      </div>
+
+      {/* Contextual controls docked along the BOTTOM EDGE (Center screen remains completely clear) */}
+      <div className="absolute bottom-3 left-4 right-4 z-10 pointer-events-none flex items-end justify-center">
+        {phase === 'APPROACH' && (
+          <div className="pointer-events-auto bg-[#0b0f1d]/92 border border-[#2d3a60] p-3 text-center max-w-md w-full flex items-center justify-between gap-4 shadow-[3px_3px_0px_#000]">
+            <p className="text-left text-xs text-slate-300 font-['VT323'] tracking-wider flex-1">
+              The park around has grown quiet and dark.
+              The Ferris wheel stands alone, a circle of gentle light against the stars.
+            </p>
+            <PixelButton onClick={handleStartAscent} size="sm">
+              Ride
             </PixelButton>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Phase interactions */}
-        <div className="flex flex-col items-center justify-center w-full my-auto pointer-events-auto">
-          {phase === 'APPROACH' && (
-            <div className="bg-[#0b0f1d]/90 border border-[#2d3a60] p-4 text-center max-w-sm space-y-4 shadow-[4px_4px_0px_#000]">
-              <p className="text-xs text-slate-300 font-['VT323'] tracking-wider">
-                The park around has grown quiet and dark.
-                The Ferris wheel stands alone, a circle of gentle light against the stars.
+        {phase === 'ASCENDING' && (
+          <div className="bg-[#080b14]/92 border border-[#23293e] px-4 py-2 text-center text-xs text-cyan-200 font-['VT323'] tracking-widest animate-pulse shadow-[2px_2px_0px_#000]">
+            Rising slowly... {altitude === 'LOW' && 'Leaving the ground behind...'}
+            {altitude === 'MIDDLE' && 'The lights below shrink into embers...'}
+            {altitude === 'HIGH' && 'Entering the stillness of the upper air...'}
+          </div>
+        )}
+
+        {/* AT THE PEAK: Held for peaceful contemplation */}
+        {phase === 'PEAK' && (
+          <div className="pointer-events-auto bg-[#050811]/95 border border-[#233559] px-4 py-3 text-center max-w-lg w-full flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[3px_3px_0px_#000]">
+            <div className="text-left flex-1">
+              <p className="text-xs sm:text-sm text-cyan-100 font-['VT323'] tracking-widest">
+                At the peak.
               </p>
-              <div className="flex justify-center gap-3">
-                <PixelButton onClick={handleStartAscent} size="md">
-                  Ride
-                </PixelButton>
-              </div>
-            </div>
-          )}
-
-          {phase === 'ASCENDING' && (
-            <div className="bg-[#080b14]/90 border border-[#23293e] px-5 py-3 text-center text-xs text-cyan-200 font-['VT323'] tracking-widest animate-pulse">
-              Rising slowly... {altitude === 'LOW' && 'Leaving the ground behind...'}
-              {altitude === 'MIDDLE' && 'The lights below shrink into embers...'}
-              {altitude === 'HIGH' && 'Entering the stillness of the upper air...'}
-            </div>
-          )}
-
-          {/* AT THE PEAK: Contemplative, peaceful, timeless */}
-          {phase === 'PEAK' && (
-            <div className="bg-[#050811]/92 border border-[#233559] p-5 text-center max-w-md space-y-4 shadow-[4px_4px_0px_#000]">
-              <div className="space-y-1.5">
-                <p className="text-sm sm:text-base text-cyan-100 font-['VT323'] tracking-widest">
-                  At the peak.
-                </p>
-                <p className="text-xs sm:text-sm text-slate-300 font-['VT323'] tracking-wider">
-                  The amusement park has gone quiet.
-                  I can finally hear the night.
-                </p>
-              </div>
-              <div className="flex justify-center pt-2">
-                <PixelButton onClick={handleDescend} size="md">
-                  Descend
-                </PixelButton>
-              </div>
-            </div>
-          )}
-
-          {phase === 'DESCENDING' && (
-            <div className="bg-[#080b14]/90 border border-[#23293e] px-5 py-3 text-center text-xs text-slate-300 font-['VT323'] tracking-widest animate-pulse">
-              Descending gently back to earth...
-              Wind murmurs through the dark trees...
-            </div>
-          )}
-
-          {phase === 'GROUND_EXIT' && (
-            <div className="flex flex-col items-center gap-4">
-              <div className="bg-[#0b0f1d]/85 border border-[#3b4b7c] px-4 py-2 text-center text-xs text-cyan-100 font-['VT323'] tracking-wider">
-                The gondola touches the wooden dock.
-                The final ride is complete.
-              </div>
-              <BreakerSwitch
-                label="Master Generator"
-                sublabel="Extinguish the final park lights"
-                onActivate={handleShutdownFerris}
-              />
-            </div>
-          )}
-
-          {phase === 'SHUTTING_DOWN' && (
-            <div className="bg-[#080b14]/90 border border-[#23293e] px-5 py-3 text-center text-xs text-slate-300 font-['VT323'] tracking-widest animate-pulse">
-              The rim lights fade sequentially... Total quiet descends...
-            </div>
-          )}
-
-          {phase === 'COMPLETED' && (
-            <div className="bg-[#070912]/92 border border-[#1b2236] p-5 text-center max-w-md space-y-4 shadow-[4px_4px_0px_#000]">
-              <p className="text-sm sm:text-base text-cyan-200/90 font-['VT323'] tracking-widest">
-                The last light has gone out.
+              <p className="text-[11px] text-slate-300 font-['VT323']">
+                The amusement park has gone quiet. I can finally hear the night.
               </p>
-              <PixelButton onClick={onProceedToQuietEnding} size="md">
-                Into the Quiet
-              </PixelButton>
             </div>
-          )}
-        </div>
+            <PixelButton onClick={handleDescend} size="sm">
+              Descend
+            </PixelButton>
+          </div>
+        )}
 
-        {/* Bottom subtle note */}
-        <div className="text-center text-[11px] text-slate-500 font-['VT323']" />
+        {phase === 'DESCENDING' && (
+          <div className="bg-[#080b14]/92 border border-[#23293e] px-4 py-2 text-center text-xs text-slate-300 font-['VT323'] tracking-widest animate-pulse shadow-[2px_2px_0px_#000]">
+            Descending gently back to earth... Night breeze murmurs through the dark trees...
+          </div>
+        )}
+
+        {phase === 'GROUND_EXIT' && (
+          <div className="pointer-events-auto w-full max-w-lg flex items-center justify-between gap-3 bg-[#0b0f1d]/92 border border-[#2d3a60] p-2.5 shadow-[3px_3px_0px_#000]">
+            <div className="text-left text-xs text-cyan-100/90 font-['VT323'] tracking-wider px-1">
+              The final ride is complete.
+            </div>
+            <BreakerSwitch
+              compact
+              label="Master Generator"
+              sublabel="Extinguish final park lights"
+              onActivate={handleShutdownFerris}
+            />
+          </div>
+        )}
+
+        {phase === 'SHUTTING_DOWN' && (
+          <div className="bg-[#080b14]/92 border border-[#23293e] px-4 py-2 text-center text-xs text-slate-300 font-['VT323'] tracking-widest animate-pulse shadow-[2px_2px_0px_#000]">
+            The rim lights fade sequentially... Total quiet descends...
+          </div>
+        )}
+
+        {phase === 'COMPLETED' && (
+          <div className="pointer-events-auto bg-[#070912]/95 border border-[#1b2236] p-3 text-center max-w-md w-full flex items-center justify-between gap-3 shadow-[3px_3px_0px_#000]">
+            <p className="text-xs sm:text-sm text-cyan-200/90 font-['VT323'] tracking-widest">
+              The last light has gone out.
+            </p>
+            <PixelButton onClick={onProceedToQuietEnding} size="sm">
+              Into the Quiet
+            </PixelButton>
+          </div>
+        )}
       </div>
     </div>
   );
