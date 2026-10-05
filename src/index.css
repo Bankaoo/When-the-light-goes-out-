@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #070913;
+  color: #e2e8f0;
+  font-family: 'Silkscreen', 'VT323', monospace;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Subtle atmospheric vignette */
+.vignette-overlay {
+  background: radial-gradient(circle at center, transparent 40%, rgba(5, 7, 18, 0.75) 100%);
+  pointer-events: none;
+}
+
+/* Soft scanlines */
+.scanlines-overlay {
+  background: linear-gradient(rgba(18, 16, 38, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+}
