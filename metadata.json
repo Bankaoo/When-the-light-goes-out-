@@ -1,6 +1,6 @@
 {
   "name": "When the Lights Go Out",
-  "description": "A gentle 2D pixel-art atmospheric interactive story about closing down an amusement park on its final night.",
+  "description": "A quiet atmospheric game about closing down the amusement park rides at the end of the shift.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

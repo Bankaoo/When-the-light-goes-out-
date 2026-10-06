@@ -55,7 +55,7 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
         if (p >= 1.0) {
           altitudeRef.current = 1.0;
           setPhase('PEAK');
-          soundEngine.playQuietNightChime();
+          soundEngine.playButtonChime();
         }
       } else if (phase === 'DESCENDING') {
         if (!motionStartTimeRef.current) motionStartTimeRef.current = now;
@@ -68,6 +68,7 @@ export const SceneFerris: React.FC<SceneFerrisProps> = ({
         if (p >= 1.0) {
           altitudeRef.current = 0.0;
           setPhase('GROUND_EXIT');
+          soundEngine.playButtonChime();
         }
       } else if (phase === 'PEAK') {
         altitudeRef.current = 1.0;

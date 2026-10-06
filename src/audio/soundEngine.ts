@@ -554,9 +554,9 @@ class SoundEngine {
   // --- REFINED, UNOBTRUSIVE INTERACTION SOUNDS ---
 
   /**
-   * Subtle, soft physical tactile click.
-   * Significantly reduced volume (0.016) with gentle low-pass warmth.
-   * Debounced to ensure repeated clicks never become irritating.
+   * Very quiet, dull, soft physical click/tap.
+   * Low and muted with very little high-frequency brightness.
+   * Subtle enough to almost disappear into the environment.
    */
   public playButtonChime() {
     if (!this.ctx || !this.masterGain || this.isMuted) return;
@@ -570,24 +570,25 @@ class SoundEngine {
     const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
 
-    // Gentle tactile wooden/relay key sound
+    // Low, dull physical tap (110Hz -> 70Hz)
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(260, now);
-    osc.frequency.exponentialRampToValueAtTime(140, now + 0.04);
+    osc.frequency.setValueAtTime(115, now);
+    osc.frequency.exponentialRampToValueAtTime(70, now + 0.02);
 
+    // Muted lowpass filter - no high-frequency brightness
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(450, now);
+    filter.frequency.setValueAtTime(180, now);
 
-    // Whisper quiet - unobtrusive physical press (0.016)
-    gain.gain.setValueAtTime(0.016, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+    // Very quiet (0.009) and brief (20ms)
+    gain.gain.setValueAtTime(0.009, now);
+    gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.022);
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
 
     osc.start(now);
-    osc.stop(now + 0.045);
+    osc.stop(now + 0.025);
   }
 
   public playBreakerThunk() {
@@ -770,22 +771,8 @@ class SoundEngine {
   }
 
   public playQuietNightChime() {
-    if (!this.ctx || !this.masterGain) return;
-    const now = this.ctx.currentTime;
-    const freqs = [880, 1174.66, 1760];
-    freqs.forEach((f, idx) => {
-      if (!this.ctx || !this.masterGain) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(f, now + idx * 0.12);
-      gain.gain.setValueAtTime(0.045, now + idx * 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.12 + 2.5);
-      osc.connect(gain);
-      gain.connect(this.masterGain);
-      osc.start(now + idx * 0.12);
-      osc.stop(now + idx * 0.12 + 2.6);
-    });
+    // Replaced musical notification chime with subtle dull tap
+    this.playButtonChime();
   }
 }
 

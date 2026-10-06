@@ -45,7 +45,6 @@ export const SceneFinal: React.FC<SceneFinalProps> = ({ onRestart }) => {
       // 3. First poetic line: "It's quiet now."
       setTimeout(() => {
         setTextStage(1);
-        soundEngine.playQuietNightChime();
       }, 5000);
 
       // 4. Second poetic line: "Once the artificial noise disappears, other things start to appear."

@@ -57,26 +57,34 @@ export const SceneIntro: React.FC<SceneIntroProps> = ({ onStart }) => {
       {/* Atmospheric dark gradient vignette */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#060814]/90 via-[#060814]/40 to-[#060814]/60 pointer-events-none" />
 
-      {/* Title & Introduction Card */}
+      {/* Title & Boss Message Card */}
       <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10">
-        <div className="max-w-xl mx-auto space-y-4">
-          <div className="space-y-1.5">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl text-[#fff3d6] font-['Silkscreen'] tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+        <div className="max-w-md w-full mx-auto space-y-4">
+          <div className="space-y-1">
+            <h1 className="text-xl sm:text-2xl text-[#fff3d6] font-['Silkscreen'] tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               WHEN THE LIGHTS GO OUT
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 font-['VT323'] tracking-wider">
-              A gentle story about the final night of an amusement park.
+          </div>
+
+          {/* Simple routine message from the boss */}
+          <div className="bg-[#0b0f1d]/95 border-2 border-[#2b385a] p-4 text-left shadow-[3px_3px_0px_#000]">
+            <div className="flex items-center justify-between border-b border-[#1c2640] pb-1.5 mb-2.5">
+              <span className="text-[11px] text-amber-300 font-['Silkscreen'] tracking-wider">
+                Shift Memo
+              </span>
+              <span className="text-[10px] text-slate-400 font-['VT323']">
+                22:45
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-200 font-['VT323'] leading-relaxed tracking-wider">
+              "Hey, I'm heading back first. Can you close up all the facilities before you leave? Make sure everything is switched off."
             </p>
           </div>
 
-          <div className="pt-6">
-            <PixelButton onClick={handleEnter} size="lg">
-              Enter the Park
+          <div className="pt-2">
+            <PixelButton onClick={handleEnter} size="md">
+              Begin Closing Shift
             </PixelButton>
-          </div>
-
-          <div className="pt-4 text-[11px] text-slate-400 font-['VT323'] tracking-widest opacity-80">
-            Audio on · Recommended with headphones
           </div>
         </div>
       </div>
